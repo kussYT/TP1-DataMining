@@ -114,14 +114,220 @@ ggplot(addiction_country, aes(x=reorder(Country, Addicted_Score), y=Addicted_Sco
   ) +
   theme_minimal()
 
-# Relation entre durée d’usage et sommeil
+# =========================================
+# 4. Analyse multivariée
+# =========================================
 
-# Nuage de points
-ggplot(data.TP1, aes(x=Avg_Daily_Usage_Hours, y=Sleep_Hours_Per_Night)) +
-  geom_point(color="blue", alpha=0.6) +
+
+# -------------------------------------------------
+# 1. Pays avec les scores d'addiction moyens les plus élevés
+# -------------------------------------------------
+
+addiction_country <- aggregate(Addicted_Score ~ Country, data = data.TP1, mean)
+
+# Trier par ordre décroissant
+addiction_country <- addiction_country[order(-addiction_country$Addicted_Score),]
+
+# Affichage du tableau
+print(addiction_country)
+
+# Graphique
+ggplot(addiction_country, aes(x = reorder(Country, Addicted_Score), y = Addicted_Score)) +
+  geom_bar(stat = "identity", fill = "red") +
+  coord_flip() +
   labs(
-    title="Usage des réseaux sociaux vs durée de sommeil",
-    x="Durée d'usage quotidien (heures)",
-    y="Heures de sommeil"
+    title = "Score moyen d'addiction par pays",
+    x = "Pays",
+    y = "Score moyen d'addiction"
   ) +
   theme_minimal()
+
+
+
+# -------------------------------------------------
+# 2. Relation entre durée d'usage et durée de sommeil
+# -------------------------------------------------
+
+ggplot(data.TP1, aes(x = Avg_Daily_Usage_Hours, y = Sleep_Hours_Per_Night)) +
+  geom_point(color = "blue", alpha = 0.6) +
+  geom_smooth(method = "lm", color = "red") +
+  labs(
+    title = "Durée d'usage des réseaux sociaux vs sommeil",
+    x = "Durée d'usage quotidien (heures)",
+    y = "Heures de sommeil"
+  ) +
+  theme_minimal()
+
+# Régression linéaire
+modele_sleep <- lm(Sleep_Hours_Per_Night ~ Avg_Daily_Usage_Hours, data = data.TP1)
+summary(modele_sleep)
+
+# Coefficient de corrélation
+correlation_sleep_usage <- cor(data.TP1$Avg_Daily_Usage_Hours, data.TP1$Sleep_Hours_Per_Night)
+print(correlation_sleep_usage)
+
+
+
+# -------------------------------------------------
+# 3. Différence hommes / femmes
+# -------------------------------------------------
+
+ggplot(data.TP1, aes(x = Avg_Daily_Usage_Hours, y = Sleep_Hours_Per_Night, color = Gender)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Usage des réseaux sociaux et sommeil selon le genre",
+    x = "Durée d'usage quotidien",
+    y = "Heures de sommeil"
+  ) +
+  theme_minimal()
+
+
+
+# -------------------------------------------------
+# 4. Corrélation entre addiction et santé mentale
+# -------------------------------------------------
+
+ggplot(data.TP1, aes(x = Addicted_Score, y = Mental_Health_Score)) +
+  geom_point(color = "purple", alpha = 0.6) +
+  geom_smooth(method = "lm", color = "black") +
+  labs(
+    title = "Score d'addiction vs santé mentale",
+    x = "Score d'addiction",
+    y = "Score de santé mentale"
+  ) +
+  theme_minimal()
+
+# Calcul de corrélation
+correlation_addiction_mental <- cor(data.TP1$Addicted_Score, data.TP1$Mental_Health_Score)
+print(correlation_addiction_mental)
+
+
+
+# -------------------------------------------------
+# 5. Impact du genre sur addiction et santé mentale
+# -------------------------------------------------
+
+ggplot(data.TP1, aes(x = Addicted_Score, y = Mental_Health_Score, color = Gender)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Addiction et santé mentale selon le genre",
+    x = "Score d'addiction",
+    y = "Score de santé mentale"
+  ) +
+  theme_minimal()
+
+
+
+# -------------------------------------------------
+# 6. Impact du niveau d'étude
+# -------------------------------------------------
+
+ggplot(data.TP1, aes(x = Addicted_Score, y = Mental_Health_Score, color = Academic_Level)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Addiction et santé mentale selon le niveau d'étude",
+    x = "Score d'addiction",
+    y = "Score de santé mentale"
+  ) +
+  theme_minimal()
+
+# =========================================
+# 5. Classification
+# =========================================
+
+
+library(OneR)
+library(e1071)
+library(rpart)
+library(rpart.plot)
+
+
+
+# -------------------------------------------------
+# 1. Discrétisation de la durée de sommeil
+# -------------------------------------------------
+
+data.TP1$Sleep_Category <- cut(
+  data.TP1$Sleep_Hours_Per_Night,
+  breaks = c(-Inf,4,7,Inf),
+  labels = c("Faible","Moyenne","Elevee")
+)
+
+table(data.TP1$Sleep_Category)
+
+
+
+# -------------------------------------------------
+# 2. Séparation train / test (70 / 30)
+# -------------------------------------------------
+
+set.seed(123)
+
+n <- nrow(data.TP1)
+
+train_index <- sample(1:n, size = 0.7*n)
+
+train_data <- data.TP1[train_index,]
+test_data <- data.TP1[-train_index,]
+
+
+
+# -------------------------------------------------
+# 3. Modèle One Rule
+# -------------------------------------------------
+
+model_oner <- OneR(Sleep_Category ~ ., data=train_data)
+
+pred_oner <- predict(model_oner, test_data)
+
+accuracy_oner <- mean(pred_oner == test_data$Sleep_Category)
+
+print(accuracy_oner)
+
+
+
+# -------------------------------------------------
+# 4. Naive Bayes
+# -------------------------------------------------
+
+model_nb <- naiveBayes(Sleep_Category ~ ., data=train_data)
+
+pred_nb <- predict(model_nb, test_data)
+
+accuracy_nb <- mean(pred_nb == test_data$Sleep_Category)
+
+print(accuracy_nb)
+
+
+
+# -------------------------------------------------
+# 5. Arbre de décision
+# -------------------------------------------------
+
+model_tree <- rpart(Sleep_Category ~ ., data=train_data, method="class")
+
+pred_tree <- predict(model_tree, test_data, type="class")
+
+accuracy_tree <- mean(pred_tree == test_data$Sleep_Category)
+
+print(accuracy_tree)
+
+# Affichage graphique de l'arbre
+
+rpart.plot(model_tree)
+
+
+
+# -------------------------------------------------
+# 6. Comparaison des résultats
+# -------------------------------------------------
+
+results <- data.frame(
+  Modele = c("One Rule","Naive Bayes","Decision Tree"),
+  Accuracy = c(accuracy_oner, accuracy_nb, accuracy_tree)
+)
+
+print(results)
