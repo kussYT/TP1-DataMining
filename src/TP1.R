@@ -62,3 +62,66 @@ if (nb_na_total > 0) {
 } else {
   cat("Aucune valeur manquante détectée.\n")
 }
+
+# =========================================
+# 3. Analyse univariée
+# =========================================
+
+# Distribution des âges
+ggplot(data.TP1, aes(x = Age)) +
+  geom_histogram(binwidth = 1, fill = "steelblue", color = "black") +
+  labs(title = "Distribution des âges", x = "Age", y = "Nombre d'étudiants") +
+  theme_minimal()
+
+# Répartition des genres
+gender_counts <- table(data.TP1$Gender)
+pie(gender_counts, main = "Répartition hommes / femmes", col = c("lightpink","lightblue"))
+
+# Plateformes les plus utilisées
+platform_counts <- sort(table(data.TP1$Most_Used_Platform), decreasing = TRUE)
+barplot(platform_counts, col="skyblue", main="Plateformes les plus utilisées")
+
+# Répartition par pays
+country_counts <- sort(table(data.TP1$Country), decreasing = TRUE)
+barplot(country_counts, las=2, col="lightgreen", main="Répartition par pays")
+
+# Distribution par niveau d'étude
+academic_counts <- table(data.TP1$Academic_Level)
+barplot(academic_counts, col="orange", main="Distribution par niveau d'étude")
+
+# =========================================
+# 4. Analyse multivariée
+# =========================================
+
+# Moyenne du score d'addiction par pays
+
+addiction_country <- aggregate(Addicted_Score ~ Country, data=data.TP1, mean)
+
+# Trier par ordre décroissant
+addiction_country <- addiction_country[order(-addiction_country$Addicted_Score),]
+
+# Affichage
+addiction_country
+
+# Graphique
+ggplot(addiction_country, aes(x=reorder(Country, Addicted_Score), y=Addicted_Score)) +
+  geom_bar(stat="identity", fill="red") +
+  coord_flip() +
+  labs(
+    title="Score moyen d'addiction par pays",
+    x="Pays",
+    y="Score moyen d'addiction"
+  ) +
+  theme_minimal()
+
+# Relation entre durée d’usage et sommeil
+
+# Nuage de points
+ggplot(data.TP1, aes(x=Avg_Daily_Usage_Hours, y=Sleep_Hours_Per_Night)) +
+  geom_point(color="blue", alpha=0.6) +
+  labs(
+    title="Usage des réseaux sociaux vs durée de sommeil",
+    x="Durée d'usage quotidien (heures)",
+    y="Heures de sommeil"
+  ) +
+  theme_minimal()
