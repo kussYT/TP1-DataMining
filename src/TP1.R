@@ -273,6 +273,9 @@ train_index <- sample(1:n, size = 0.7*n)
 train_data <- data.TP1[train_index,]
 test_data <- data.TP1[-train_index,]
 
+train_data$Sleep_Category <- droplevels(train_data$Sleep_Category)
+test_data$Sleep_Category <- droplevels(test_data$Sleep_Category)
+
 
 
 # -------------------------------------------------
@@ -283,7 +286,7 @@ model_oner <- OneR(Sleep_Category ~ ., data=train_data)
 
 pred_oner <- predict(model_oner, test_data)
 
-accuracy_oner <- mean(pred_oner == test_data$Sleep_Category)
+accuracy_oner <- mean(as.character(pred_oner) == as.character(test_data$Sleep_Category))
 
 print(accuracy_oner)
 
@@ -297,37 +300,66 @@ model_nb <- naiveBayes(Sleep_Category ~ ., data=train_data)
 
 pred_nb <- predict(model_nb, test_data)
 
-accuracy_nb <- mean(pred_nb == test_data$Sleep_Category)
+accuracy_nb <- mean(as.character(pred_nb) == as.character(test_data$Sleep_Category))
 
 print(accuracy_nb)
 
 
+# -----------------------------
+# Préparation des données pour l'arbre
+# -----------------------------
 
+train_tree <- train_data[, c(
+  "Age",
+  "Gender",
+  "Avg_Daily_Usage_Hours",
+  "Mental_Health_Score",
+  "Addicted_Score",
+  "Conflicts_Over_Social_Media",
+  "Sleep_Category"
+)]
+
+test_tree <- test_data[, c(
+  "Age",
+  "Gender",
+  "Avg_Daily_Usage_Hours",
+  "Mental_Health_Score",
+  "Addicted_Score",
+  "Conflicts_Over_Social_Media",
+  "Sleep_Category"
+)]
+
+train_tree <- droplevels(train_tree)
+test_tree <- droplevels(test_tree)
 # -------------------------------------------------
 # 5. Arbre de décision
 # -------------------------------------------------
 
-model_tree <- rpart(Sleep_Category ~ ., data=train_data, method="class")
+library(rpart)
+library(rpart.plot)
 
-pred_tree <- predict(model_tree, test_data, type="class")
+model_tree <- rpart(
+  Sleep_Category ~ .,
+  data = train_tree,
+  method = "class"
+)
 
-accuracy_tree <- mean(pred_tree == test_data$Sleep_Category)
+pred_tree <- predict(model_tree, test_tree, type = "class")
+
+accuracy_tree <- mean(as.character(pred_tree) == as.character(test_tree$Sleep_Category))
 
 print(accuracy_tree)
 
-# Affichage graphique de l'arbre
-
 rpart.plot(model_tree)
-
-
 
 # -------------------------------------------------
 # 6. Comparaison des résultats
 # -------------------------------------------------
 
 results <- data.frame(
-  Modele = c("One Rule","Naive Bayes","Decision Tree"),
+  Modele = c("One Rule", "Naive Bayes", "Decision Tree"),
   Accuracy = c(accuracy_oner, accuracy_nb, accuracy_tree)
 )
 
 print(results)
+
